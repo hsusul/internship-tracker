@@ -1,6 +1,4 @@
-@config "../../tailwind.config.mjs";
 @import "tailwindcss";
 
-
-/* optional */
+/* Tailwind v4 doesn't need @tailwind directives */
 html, body { height: 100%; }
