@@ -2,17 +2,25 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-const eslintConfig = defineConfig([
+export default defineConfig([
+  // Next.js recommended configs
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
+
+  // Add/override ignores (flat config way)
   globalIgnores([
-    // Default ignores of eslint-config-next:
+    // Next defaults
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+
+    // Your repo ignores
+    "node_modules/**",
+    "src/generated/**",        // prisma client output dir
+    "prisma/migrations/**",    // migration SQL files
+    "coverage/**",
+    ".vercel/**",
+    "**/*.min.*",
   ]),
 ]);
-
-export default eslintConfig;

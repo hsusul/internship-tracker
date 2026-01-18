@@ -1,10 +1,13 @@
+// src/app/(app)/dashboard/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ApplicationTable from "@/components/ApplicationTable";
-import { MilestoneType } from "@/generated/prisma";
+import { MilestoneType, Prisma } from "@/generated/prisma";
 import { authOptions } from "@/auth";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
@@ -16,20 +19,26 @@ function StatCard({ label, value }: { label: string; value: number }) {
 }
 
 function isMilestoneType(v: unknown): v is MilestoneType {
-  return typeof v === "string" && (Object.values(MilestoneType) as string[]).includes(v);
+  return (
+    typeof v === "string" &&
+    (Object.values(MilestoneType) as string[]).includes(v)
+  );
 }
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: { q?: string; milestone?: string };
+  // Next.js 16: searchParams can be a Promise in server components
+  searchParams?: Promise<{ q?: string; milestone?: string }>;
 }) {
-  // ✅ require auth
+  const sp = (await searchParams) ?? {};
+
+  // require auth
   const session = await getServerSession(authOptions);
   const email = session?.user?.email;
   if (!email) redirect("/login");
 
-  // ✅ ensure a User row exists (prevents “redirect loop” when user isn't in DB yet)
+  // ensure a User row exists (prevents redirect loop if user isn't in DB yet)
   const user = await prisma.user.upsert({
     where: { email },
     update: {
@@ -44,15 +53,15 @@ export default async function Page({
     select: { id: true },
   });
 
-  const q = (searchParams?.q ?? "").trim();
-  const milestoneRaw = searchParams?.milestone;
+  const q = (sp.q ?? "").trim();
 
+  const milestoneRaw = sp.milestone;
   const milestone: MilestoneType | undefined = isMilestoneType(milestoneRaw)
-    ? (milestoneRaw as MilestoneType)
+    ? milestoneRaw
     : undefined;
 
-  const where = {
-    userId: user.id, // ✅ only show this user's apps
+  const where: Prisma.ApplicationWhereInput = {
+    userId: user.id,
     ...(milestone ? { milestones: { some: { type: milestone } } } : {}),
     ...(q
       ? {
@@ -75,7 +84,10 @@ export default async function Page({
       where: { ...where, milestones: { some: { type: MilestoneType.APPLIED } } },
     }),
     prisma.application.count({
-      where: { ...where, milestones: { some: { type: MilestoneType.INTERVIEW } } },
+      where: {
+        ...where,
+        milestones: { some: { type: MilestoneType.INTERVIEW } },
+      },
     }),
     prisma.application.count({
       where: { ...where, milestones: { some: { type: MilestoneType.OFFER } } },
@@ -86,7 +98,9 @@ export default async function Page({
     <main className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Internship Tracker</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Internship Tracker
+          </h1>
           <p className="mt-1 text-sm text-slate-600">
             Clean tracking for apps, interviews, offers, and follow-ups.
           </p>
@@ -108,7 +122,11 @@ export default async function Page({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" action="/dashboard" method="get">
+        <form
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          action="/dashboard"
+          method="get"
+        >
           <label className="flex-1 space-y-1">
             <div className="text-sm font-medium text-slate-700">Search</div>
             <input

@@ -1,5 +1,6 @@
-@config "../../tailwind.config.ts";
+@config "../../tailwind.config.mjs";
 @import "tailwindcss";
+
 
 /* optional */
 html, body { height: 100%; }
